@@ -20,10 +20,10 @@ def solve_tridiagonal(a, b, c, d):
 
 
 def build_cubic_spline(x_nodes, y_nodes):
-    n = len(x_nodes) - 1 
-    h = [x_nodes[i] - x_nodes[i - 1] for i in range(1, n + 1)]
+    n = len(x_nodes) - 1  
+    h = [x_nodes[i+1] - x_nodes[i] for i in range(n)] 
 
-    c = [0.0] * (n + 2)
+    c = [0.0] * (n + 1)
     
     size = n - 1  
     
@@ -52,40 +52,36 @@ def build_cubic_spline(x_nodes, y_nodes):
         
         c_mid = solve_tridiagonal(A, B, C, D)
         for k in range(size):
-            c[k + 2] = c_mid[k]  
+            c[k + 1] = c_mid[k]  
     
-    a = [0.0] * (n + 1)
-    b = [0.0] * (n + 1)
-    d = [0.0] * (n + 1)
+    a = [0.0] * n
+    b = [0.0] * n
+    d = [0.0] * n
     
-    for i in range(1, n + 1):
-        a[i] = y_nodes[i - 1]
-        
-    for i in range(1, n):
-        b[i] = (y_nodes[i] - y_nodes[i - 1]) / h[i - 1] - (1.0 / 3.0) * h[i - 1] * (c[i + 1] + 2 * c[i])
-        d[i] = (c[i + 1] - c[i]) / (3.0 * h[i - 1])
-        
-    b[n] = (y_nodes[n] - y_nodes[n - 1]) / h[n - 1] - (2.0 / 3.0) * h[n - 1] * c[n]
-    d[n] = -c[n] / (3.0 * h[n - 1])
-    
-    return a, b, c[:n+1], d
+    for i in range(n):
+        a[i] = y_nodes[i]
+        b[i] = (y_nodes[i+1] - y_nodes[i]) / h[i] - (h[i] / 3.0) * (2.0 * c[i] + c[i+1])
+        d[i] = (c[i+1] - c[i]) / (3.0 * h[i])
+
+    return a, b, c, d
 
 
 def evaluate_spline(x, x_nodes, a, b, c, d):
     n = len(x_nodes) - 1
     
-    interval = 1
-    for i in range(1, n + 1):
-        if x_nodes[i - 1] <= x <= x_nodes[i]:
-            interval = i
+    interval_idx = 0
+    for i in range(n):
+        if x_nodes[i] <= x <= x_nodes[i+1]:
+            interval_idx = i
             break
             
     if x < x_nodes[0]:
-        interval = 1
+        interval_idx = 0
     if x > x_nodes[-1]:
-        interval = n
+        interval_idx = n - 1
 
-    dx = x - x_nodes[interval - 1]
-    S_x = a[interval] + b[interval] * dx + c[interval] * (dx ** 2) + d[interval] * (dx ** 3)
+    dx = x - x_nodes[interval_idx]
     
-    return S_x, interval
+    S_x = a[interval_idx] + b[interval_idx] * dx + c[interval_idx] * (dx ** 2) + d[interval_idx] * (dx ** 3)
+    
+    return S_x, interval_idx
